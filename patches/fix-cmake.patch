@@ -1,0 +1,65 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -18,6 +18,9 @@
+ # along with this file; if not, write to the Free Software
+ # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+ 
++# Version 2.8.5 or above of cmake is currently required for all platforms.
++cmake_minimum_required(VERSION 2.8.5 FATAL_ERROR)
++
+ # It is a fatal error if no working C compiler is available to build
+ # the shapelib library and utilities
+ project(shapelib C)
+@@ -25,9 +28,6 @@ project(shapelib C)
+ message(STATUS "CMake version = ${CMAKE_VERSION}")
+ message(STATUS "CMAKE_SYSTEM_NAME = ${CMAKE_SYSTEM_NAME}")
+ 
+-# Version 2.8.5 or above of cmake is currently required for all platforms.
+-cmake_minimum_required(VERSION 2.8.5 FATAL_ERROR)
+-
+ # libraries are all shared by default.
+ option(BUILD_SHARED_LIBS "Build shared libraries" ON)
+ 
+@@ -47,24 +47,6 @@ endif(BUILD_SHARED_LIBS AND WIN32 AND NOT CYGWIN)
+ set(PACKAGE shp)
+ 
+ # Set up install locations.
+-set(
+-  CMAKE_INSTALL_BINDIR
+-  ${CMAKE_INSTALL_PREFIX}/bin
+-  CACHE PATH "install location for user executables"
+-  )
+-
+-set(
+-  CMAKE_INSTALL_LIBDIR
+-  ${CMAKE_INSTALL_PREFIX}/lib
+-  CACHE PATH "install location for object code libraries"
+-  )
+-
+-set(
+-  CMAKE_INSTALL_INCLUDEDIR
+-  ${CMAKE_INSTALL_PREFIX}/include
+-  CACHE PATH "install location for C header files"
+-  )
+-
+ set(
+   CMAKE_INSTALL_SHP_DATADIR
+   ${CMAKE_INSTALL_PREFIX}/share/${PACKAGE}
+@@ -148,7 +130,7 @@ set(executables
+ find_program(BASH_EXECUTABLE bash)
+ find_program(SED_EXECUTABLE sed)
+ if(BASH_EXECUTABLE AND SED_EXECUTABLE)
+-  set(BUILD_TEST ON)
++  option(BUILD_TEST ON)
+ else(BASH_EXECUTABLE AND SED_EXECUTABLE)
+   message(STATUS "WARNING: sed or bash not available so disabling testing")
+ endif(BASH_EXECUTABLE AND SED_EXECUTABLE)
+@@ -183,7 +165,7 @@ foreach(executable ${executables})
+ endforeach(executable ${executables})
+ 
+ # Install header
+-install(FILES shapefil.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
++install(FILES shapefil.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/shapelib)
+ 
+ if(BUILD_TEST)
+   # Set up tests:

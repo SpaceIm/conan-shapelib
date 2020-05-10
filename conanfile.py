@@ -9,11 +9,13 @@ class ShapelibConan(ConanFile):
     topics = ("conan", "shapelib", "osgeo", "shapefile", "esri", "geospatial")
     homepage = "https://github.com/OSGeo/shapelib"
     url = "https://github.com/conan-io/conan-center-index"
-    exports_sources = "CMakeLists.txt"
+    exports_sources = ["CMakeLists.txt", "patches/**"]
     generators = "cmake"
     settings = "os", "arch", "compiler", "build_type"
     options = {"shared": [True, False], "fPIC": [True, False]}
     default_options = {"shared": False, "fPIC": True}
+
+    _cmake = None
 
     @property
     def _source_subfolder(self):
@@ -34,26 +36,27 @@ class ShapelibConan(ConanFile):
     def source(self):
         tools.get(**self.conan_data["sources"][self.version])
         os.rename(self.name + "-" + self.version, self._source_subfolder)
-        tools.replace_in_file(os.path.join(self._source_subfolder, "CMakeLists.txt"),
-                              "set(BUILD_TEST ON)", "")
 
     def build(self):
-        cmake = CMake(self)
-        cmake.configure(build_folder=self._build_subfolder)
-        cmake.build(target="shp")
+        for patch in self.conan_data.get("patches", {}).get(self.version, []):
+            tools.patch(**patch)
+        cmake = self._configure_cmake()
+        cmake.build()
+
+    def _configure_cmake(self):
+        if self._cmake:
+            return self._cmake
+        self._cmake = CMake(self)
+        self._cmake.definitions["USE_RPATH"] = False
+        self._cmake.definitions["BUILD_TEST"] = False
+        self._cmake.configure(build_folder=self._build_subfolder)
+        return self._cmake
 
     def package(self):
         self.copy("COPYING", dst="licenses", src=self._source_subfolder)
-
-        self.copy("shapefil.h", dst="include", src=self._source_subfolder)
-
-        build_lib_dir = os.path.join(self._build_subfolder, "lib")
-        build_bin_dir = os.path.join(self._build_subfolder, "bin")
-        self.copy(pattern="*.a", dst="lib", src=build_lib_dir, keep_path=False)
-        self.copy(pattern="*.lib", dst="lib", src=build_lib_dir, keep_path=False)
-        self.copy(pattern="*.dylib", dst="lib", src=build_lib_dir, keep_path=False)
-        self.copy(pattern="*.so*", dst="lib", src=build_lib_dir, keep_path=False, symlinks=True)
-        self.copy(pattern="*.dll", dst="bin", src=build_bin_dir, keep_path=False)
+        cmake = self._configure_cmake()
+        cmake.install()
+        tools.rmdir(os.path.join(self.package_folder, "share"))
 
     def package_info(self):
         self.cpp_info.names["cmake_find_package"] = "shp"
@@ -61,3 +64,4 @@ class ShapelibConan(ConanFile):
         self.cpp_info.libs = tools.collect_libs(self)
         if self.settings.os == "Linux":
             self.cpp_info.system_libs.append("m")
+        self.cpp_info.includedirs.append(os.path.join("include", "shapelib"))
